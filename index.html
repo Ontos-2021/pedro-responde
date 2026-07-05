@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pedro responde</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <style>
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+    }
+
+    body {
+      background: #f4f1dc;
+      color: #111;
+      font-family: "Times New Roman", Times, serif;
+      font-size: 18px;
+    }
+
+    .page {
+      box-sizing: border-box;
+      margin: 0 auto;
+      max-width: 780px;
+      min-height: 100vh;
+      padding: 28px 16px 40px;
+    }
+
+    .box {
+      background: #fffdf0;
+      border: 2px solid #777;
+      margin-top: 18px;
+      padding: 20px;
+    }
+
+    h1 {
+      color: #800000;
+      font-size: 48px;
+      font-weight: normal;
+      letter-spacing: 1px;
+      margin: 10px 0 0;
+      text-align: center;
+    }
+
+    .subtitle {
+      color: #000080;
+      font-size: 18px;
+      margin: 6px 0 0;
+      text-align: center;
+    }
+
+    .instructions {
+      border-bottom: 1px solid #aaa;
+      color: #333;
+      font-size: 16px;
+      line-height: 1.35;
+      margin-bottom: 18px;
+      padding-bottom: 14px;
+      text-align: center;
+    }
+
+    label {
+      display: block;
+      font-weight: bold;
+      margin: 14px 0 5px;
+    }
+
+    input[type="text"] {
+      background: white;
+      border: 2px inset #d6d6d6;
+      box-sizing: border-box;
+      color: #111;
+      font-family: "Times New Roman", Times, serif;
+      font-size: 20px;
+      padding: 7px 8px;
+      width: 100%;
+    }
+
+    input.trick-locked {
+      user-select: none;
+    }
+
+    .actions {
+      margin-top: 18px;
+      text-align: center;
+    }
+
+    button {
+      background: #dedede;
+      border: 2px outset #eee;
+      color: #111;
+      cursor: pointer;
+      font-family: "Times New Roman", Times, serif;
+      font-size: 19px;
+      padding: 6px 22px;
+    }
+
+    button:active {
+      border-style: inset;
+    }
+
+    button.secondary {
+      font-size: 16px;
+      margin-left: 8px;
+      padding: 5px 14px;
+    }
+
+    .answer-title {
+      color: #800000;
+      font-size: 22px;
+      font-weight: bold;
+      margin: 24px 0 8px;
+      text-align: center;
+    }
+
+    .answer {
+      background: #fff;
+      border: 1px solid #777;
+      min-height: 70px;
+      padding: 14px;
+      text-align: center;
+    }
+
+    #answerText {
+      color: #000080;
+      font-size: 25px;
+      line-height: 1.25;
+      white-space: pre-wrap;
+    }
+
+    .cursor::after {
+      animation: blink 1s steps(1) infinite;
+      content: "_";
+      margin-left: 2px;
+    }
+
+    .footer {
+      color: #555;
+      font-size: 13px;
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    @keyframes blink {
+      50% {
+        opacity: 0;
+      }
+    }
+
+    @media (max-width: 520px) {
+      body {
+        font-size: 16px;
+      }
+
+      h1 {
+        font-size: 36px;
+      }
+
+      .box {
+        padding: 14px;
+      }
+
+      input[type="text"] {
+        font-size: 18px;
+      }
+
+      button,
+      button.secondary {
+        display: block;
+        margin: 10px auto 0;
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <h1>Pedro responde</h1>
+    <p class="subtitle">El misterio vuelve a ti</p>
+
+    <section class="box" aria-labelledby="formTitle">
+      <div class="instructions" id="formTitle">
+        Escribe una peticion para Pedro y luego haz tu pregunta. Si el ritual es correcto,
+        Pedro respondera lo que nadie espera.
+      </div>
+
+      <form id="pedroForm" autocomplete="off">
+        <label for="petition">Peticion:</label>
+        <input
+          id="petition"
+          name="petition"
+          type="text"
+          spellcheck="false"
+          placeholder="Pedro, por favor responde:"
+        >
+
+        <label for="question">Pregunta:</label>
+        <input
+          id="question"
+          name="question"
+          type="text"
+          spellcheck="false"
+          placeholder="Escribe aqui tu pregunta"
+        >
+
+        <div class="actions">
+          <button type="submit">Preguntar</button>
+          <button class="secondary" id="resetButton" type="button">Limpiar</button>
+        </div>
+      </form>
+
+      <div class="answer-title">Respuesta de Pedro</div>
+      <div class="answer" aria-live="polite">
+        <span id="answerText" class="cursor">Esperando tu pregunta...</span>
+      </div>
+
+    </section>
+
+    <div class="footer">Pedro responde</div>
+  </main>
+
+  <script>
+    (function () {
+      var visiblePhrase = "Pedro, por favor responde:";
+      var fallbackAnswers = [
+        "No puedo responder ahora.",
+        "Los espiritus no me permiten verlo.",
+        "Pregunta de nuevo cuando haya silencio.",
+        "Pedro no quiere revelar eso todavia.",
+        "La respuesta esta oculta para ti."
+      ];
+
+      var form = document.getElementById("pedroForm");
+      var petition = document.getElementById("petition");
+      var question = document.getElementById("question");
+      var answerText = document.getElementById("answerText");
+      var resetButton = document.getElementById("resetButton");
+
+      var secretAnswer = "";
+      var trickMode = false;
+      var pendingSeparator = "";
+      var forcedPhraseIndex = null;
+      var trickStartLength = 0;
+      var typingTimer = null;
+
+      function moveCaretToEnd() {
+        var end = petition.value.length;
+        petition.setSelectionRange(end, end);
+      }
+
+      function resetTrickState() {
+        trickMode = false;
+        pendingSeparator = "";
+        forcedPhraseIndex = null;
+        trickStartLength = petition.value.length;
+        petition.classList.remove("trick-locked");
+      }
+
+      function cancelTrick() {
+        secretAnswer = "";
+        resetTrickState();
+        moveCaretToEnd();
+      }
+
+      function matchingVisibleLength(text) {
+        var current = text.toLowerCase();
+        var phrase = visiblePhrase.toLowerCase();
+        var max = Math.min(current.length, phrase.length);
+        var length;
+
+        for (length = max; length > 0; length -= 1) {
+          if (current.slice(-length) === phrase.slice(0, length)) {
+            return length;
+          }
+        }
+
+        return 0;
+      }
+
+      function fakeNextChar() {
+        var visibleLength;
+
+        if (pendingSeparator) {
+          var separatorChar = pendingSeparator.charAt(0);
+          pendingSeparator = pendingSeparator.slice(1);
+          return separatorChar;
+        }
+
+        if (forcedPhraseIndex !== null) {
+          var forcedCharacter = visiblePhrase.charAt(forcedPhraseIndex);
+          forcedPhraseIndex += 1;
+
+          if (forcedPhraseIndex >= visiblePhrase.length) {
+            forcedPhraseIndex = null;
+          }
+
+          return forcedCharacter;
+        }
+
+        visibleLength = matchingVisibleLength(petition.value);
+
+        if (visibleLength === 0 && petition.value.trim()) {
+          pendingSeparator = ", ";
+          forcedPhraseIndex = 0;
+          return fakeNextChar();
+        }
+
+        if (visibleLength >= visiblePhrase.length) {
+          pendingSeparator = " ";
+          forcedPhraseIndex = 0;
+          return fakeNextChar();
+        }
+
+        return visiblePhrase.charAt(visibleLength);
+      }
+
+      function clearTyping() {
+        if (typingTimer) {
+          window.clearTimeout(typingTimer);
+          typingTimer = null;
+        }
+      }
+
+      function typeAnswer(text) {
+        var index = 0;
+        clearTyping();
+        answerText.textContent = "";
+        answerText.classList.add("cursor");
+
+        function writeNext() {
+          answerText.textContent = text.slice(0, index);
+          index += 1;
+
+          if (index <= text.length) {
+            typingTimer = window.setTimeout(writeNext, 45);
+          } else {
+            typingTimer = null;
+            answerText.classList.remove("cursor");
+          }
+        }
+
+        writeNext();
+      }
+
+      function resetGame() {
+        clearTyping();
+        secretAnswer = "";
+        resetTrickState();
+        petition.value = "";
+        question.value = "";
+        answerText.textContent = "Esperando tu pregunta...";
+        answerText.classList.add("cursor");
+        petition.focus();
+      }
+
+      function hasValidPetition(text) {
+        return text.trim().length > 0;
+      }
+
+      petition.addEventListener("keydown", function (event) {
+        var blockedKeys = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End", "Delete"];
+
+        if (event.key === "Enter") {
+          event.preventDefault();
+          question.focus();
+          return;
+        }
+
+        if (trickMode) {
+          moveCaretToEnd();
+
+          if (event.key === "Escape") {
+            event.preventDefault();
+            cancelTrick();
+            return;
+          }
+
+          if (event.ctrlKey || event.metaKey || event.altKey || blockedKeys.indexOf(event.key) !== -1) {
+            event.preventDefault();
+            return;
+          }
+        }
+
+        if (event.key === ".") {
+          event.preventDefault();
+          if (trickMode) {
+            resetTrickState();
+          } else {
+            trickMode = true;
+            pendingSeparator = "";
+            forcedPhraseIndex = null;
+            trickStartLength = petition.value.length;
+            petition.classList.add("trick-locked");
+            petition.value += fakeNextChar();
+            moveCaretToEnd();
+          }
+          return;
+        }
+
+        if (!trickMode) {
+          return;
+        }
+
+        if (event.key === "Backspace") {
+          event.preventDefault();
+          secretAnswer = secretAnswer.slice(0, -1);
+          if (petition.value.length > trickStartLength) {
+            petition.value = petition.value.slice(0, -1);
+          }
+          moveCaretToEnd();
+          return;
+        }
+
+        if (event.key.length === 1) {
+          event.preventDefault();
+          secretAnswer += event.key === "+" ? "." : event.key;
+          petition.value += fakeNextChar();
+          moveCaretToEnd();
+        }
+      });
+
+      petition.addEventListener("mousedown", function (event) {
+        if (trickMode) {
+          event.preventDefault();
+          moveCaretToEnd();
+        }
+      });
+
+      petition.addEventListener("contextmenu", function (event) {
+        if (trickMode) {
+          event.preventDefault();
+        }
+      });
+
+      form.addEventListener("submit", function (event) {
+        var response;
+        event.preventDefault();
+
+        if (!hasValidPetition(petition.value)) {
+          typeAnswer("No respetas el ritual. Primero escribe una peticion para Pedro.");
+          return;
+        }
+
+        if (!question.value.trim()) {
+          typeAnswer("Haz una pregunta si quieres una respuesta.");
+          return;
+        }
+
+        response = secretAnswer.trim();
+
+        if (!response) {
+          response = fallbackAnswers[Math.floor(Math.random() * fallbackAnswers.length)];
+        }
+
+        typeAnswer(response);
+        secretAnswer = "";
+        resetTrickState();
+      });
+
+      resetButton.addEventListener("click", resetGame);
+      resetGame();
+    }());
+  </script>
+</body>
+</html>
