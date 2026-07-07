@@ -376,46 +376,59 @@
             return;
           }
 
+          if (event.key === "Backspace" || event.key === "Delete") {
+            event.preventDefault();
+            return;
+          }
+
           if (event.ctrlKey || event.metaKey || event.altKey || blockedKeys.indexOf(event.key) !== -1) {
             event.preventDefault();
             return;
           }
         }
+      });
 
-        if (event.key === ".") {
-          event.preventDefault();
+      petition.addEventListener("beforeinput", function (event) {
+        var insertTypes = ["insertText", "insertFromPaste", "insertReplacementText"];
+        var deleteTypes = ["deleteContentBackward", "deleteContentForward", "deleteByCut"];
+
+        if (insertTypes.indexOf(event.inputType) !== -1 && event.data !== null && event.data !== "") {
+          var chars = event.data;
+
+          if (chars === ".") {
+            event.preventDefault();
+            if (trickMode) {
+              resetTrickState();
+            } else {
+              trickMode = true;
+              pendingSeparator = "";
+              forcedPhraseIndex = null;
+              trickStartLength = petition.value.length;
+              petition.classList.add("trick-locked");
+              petition.value += fakeNextChar();
+              moveCaretToEnd();
+            }
+            return;
+          }
+
           if (trickMode) {
-            resetTrickState();
-          } else {
-            trickMode = true;
-            pendingSeparator = "";
-            forcedPhraseIndex = null;
-            trickStartLength = petition.value.length;
-            petition.classList.add("trick-locked");
-            petition.value += fakeNextChar();
+            event.preventDefault();
+            for (var i = 0; i < chars.length; i += 1) {
+              var c = chars.charAt(i);
+              secretAnswer += c === "+" ? "." : c;
+              petition.value += fakeNextChar();
+            }
             moveCaretToEnd();
           }
           return;
         }
 
-        if (!trickMode) {
-          return;
-        }
-
-        if (event.key === "Backspace") {
+        if (trickMode && deleteTypes.indexOf(event.inputType) !== -1) {
           event.preventDefault();
           secretAnswer = secretAnswer.slice(0, -1);
           if (petition.value.length > trickStartLength) {
             petition.value = petition.value.slice(0, -1);
           }
-          moveCaretToEnd();
-          return;
-        }
-
-        if (event.key.length === 1) {
-          event.preventDefault();
-          secretAnswer += event.key === "+" ? "." : event.key;
-          petition.value += fakeNextChar();
           moveCaretToEnd();
         }
       });
@@ -423,6 +436,12 @@
       petition.addEventListener("mousedown", function (event) {
         if (trickMode) {
           event.preventDefault();
+          moveCaretToEnd();
+        }
+      });
+
+      petition.addEventListener("click", function () {
+        if (trickMode) {
           moveCaretToEnd();
         }
       });
